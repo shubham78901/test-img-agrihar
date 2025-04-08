@@ -1,0 +1,152 @@
+basePath: /api/v1
+definitions:
+  models.ErrorResponse:
+    properties:
+      error:
+        description: Error message
+        example: Invalid file format
+        type: string
+    type: object
+  models.ImageResult:
+    properties:
+      height:
+        description: Height in pixels
+        example: 1080
+        type: integer
+      url:
+        description: S3 URL of the image
+        example: https://bucket.s3.region.amazonaws.com/file.jpg
+        type: string
+      width:
+        description: Width in pixels
+        example: 1920
+        type: integer
+    type: object
+  models.UploadResponse:
+    properties:
+      compressed_images:
+        description: Information about all compressed versions
+        items:
+          $ref: '#/definitions/models.ImageResult'
+        type: array
+      message:
+        description: Status message
+        example: Image uploaded and processed successfully
+        type: string
+      original_image:
+        allOf:
+        - $ref: '#/definitions/models.ImageResult'
+        description: Information about the original image
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: An API for uploading, compressing, and storing images to S3
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Image Upload API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Check if the API is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /images:
+    get:
+      description: List all images in the S3 bucket
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: List all images
+      tags:
+      - images
+  /images/{filename}:
+    get:
+      description: Get information about an uploaded image by filename
+      parameters:
+      - description: Image filename
+        in: path
+        name: filename
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ImageResult'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get image information
+      tags:
+      - images
+  /upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload and compress an image based on specified sizes, then store
+        in S3
+      parameters:
+      - description: Image to upload
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: 'JSON array of compression specifications [{''width'': 100, ''height'':
+          100}, ...]'
+        in: formData
+        name: compress_sizes
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Upload an image
+      tags:
+      - images
+swagger: "2.0"
